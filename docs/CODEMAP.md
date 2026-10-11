@@ -34,10 +34,10 @@
 | 被依赖量级 | 模块 |
 | --- | --- |
 | 512+ | `src/types.ts` |
-| 128+ | `src/types/onlineMusic.ts` |
 | 64+ | `src/components/command-palette/types.ts` |
 | 64+ | `src/components/visualizer/colorMix.ts` |
 | 64+ | `src/library/core/contracts/suite.ts` |
+| 64+ | `src/types/onlineMusic.ts` |
 | 64+ | `src/types/ponder.ts` |
 | 64+ | `src/utils/appPlaybackGuards.ts` |
 | 32+ | `dev/probes/definition.ts` |
