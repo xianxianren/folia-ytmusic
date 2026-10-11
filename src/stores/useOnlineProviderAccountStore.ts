@@ -28,7 +28,14 @@ const ACTIVE_PROVIDER_KEY = 'active_online_provider_id';
 
 const getInitialProviderId = (): OnlineProviderId => {
     if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') return 'ytmusic';
-    return localStorage.getItem(ACTIVE_PROVIDER_KEY) || 'ytmusic';
+    const stored = localStorage.getItem(ACTIVE_PROVIDER_KEY);
+    if (!stored || stored === 'netease' || stored === 'qq' || stored === 'kugou' || stored === 'bodian') {
+        try {
+            localStorage.setItem(ACTIVE_PROVIDER_KEY, 'ytmusic');
+        } catch (_) {}
+        return 'ytmusic';
+    }
+    return stored || 'ytmusic';
 };
 
 const emptyAccount = (): OnlineProviderAccountState => ({

@@ -1256,6 +1256,8 @@ export default {
     "yourPlaylists": "Your Playlists",
     "searchPlaceholder": "Search for music...",
     "songs": "songs",
+    "loginTitleYtmusic": "Sign in to YouTube Music",
+    "loginNoteYtmusic": "Sign in with your Google account to access your YouTube Music library",
     "loginTitle": "Scan with Netease App",
     "loginNote": "Open Netease Music App > Discover > Scan QR",
     "loginTitleKugou": "Scan with KuGou Music",

@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useRef } from 'react';
-import { AlertTriangle, Check, Loader2, RotateCcw, ServerCog, X } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AlertTriangle, Check, ExternalLink, Loader2, Music2, RotateCcw, ServerCog, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { BravaisAccountForm, BravaisConfirmForm, BravaisLoginForm } from './bravaisAccountModel';
 import { setBravaisAccountElement, useBravaisAccountStore, type BravaisAccountActions } from './bravaisAccountStore';
 import type { BravaisAccountSeamVariant } from './bravaisSeamTarget';
 import BravaisLoginFailureHelpView from './BravaisLoginFailureHelp';
 import { BravaisSeamFlip, BravaisSeamFlipText } from './BravaisSeamFlip';
+import { useOnlineProviderAccountStore } from '../../../stores/useOnlineProviderAccountStore';
 import qqIcon from '../../../assets/providers/qq.svg';
 import wechatIcon from '../../../assets/providers/wechat.svg';
 import './bravaisAccount.css';
@@ -57,6 +58,36 @@ const LoginView: React.FC<{ form: BravaisLoginForm; actions: BravaisAccountActio
         if (live && useBravaisAccountStore.getState().isInteractive) rootRef.current?.focus({ preventScroll: true });
     }, [live, form.providerId]);
     const { methods, retry, restart } = form;
+
+    const [ytmusicLoading, setYtmusicLoading] = useState(false);
+    const [ytmusicError, setYtmusicError] = useState<string | null>(null);
+
+    const handleYtmusicLogin = async () => {
+        if (!window.electron?.openYtmusicLogin) {
+            setYtmusicError('Desktop app runtime required for YouTube Music login');
+            return;
+        }
+        setYtmusicLoading(true);
+        setYtmusicError(null);
+        try {
+            const user = await window.electron.openYtmusicLogin();
+            if (user) {
+                useOnlineProviderAccountStore.getState().updateAccount('ytmusic', {
+                    status: 'authenticated',
+                    user,
+                    freshness: 'fresh',
+                });
+                actions.close();
+            }
+        } catch (err: any) {
+            setYtmusicError(err?.message || 'Login failed');
+        } finally {
+            setYtmusicLoading(false);
+        }
+    };
+
+    const isYtmusic = form.providerId === 'ytmusic';
+
     return (
         <section
             ref={setRoot}
@@ -76,64 +107,96 @@ const LoginView: React.FC<{ form: BravaisLoginForm; actions: BravaisAccountActio
                     <X aria-hidden />
                 </button>
             </div>
-            {methods && (
-                <div className="bravais-login-methods" data-bravais-login-methods>
-                    <p className="is-label">{methods.title}</p>
-                    <p className="is-hint">{methods.hint}</p>
-                    <div className="bravais-login-method-options">
-                        {methods.options.map(option => (
-                            <button
-                                key={option.id}
-                                type="button"
-                                aria-pressed={option.selected}
-                                data-bravais-login-method={option.id}
-                                className={option.selected ? 'is-selected' : undefined}
-                                onClick={() => actions.selectMethod(option.id)}
-                            >
-                                {LOGIN_METHOD_ICONS[option.iconKey] && <img src={LOGIN_METHOD_ICONS[option.iconKey]} alt="" aria-hidden />}
-                                <span>{option.label}</span>
-                                {option.selected && <Check aria-hidden />}
-                            </button>
-                        ))}
+            {isYtmusic ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', gap: '16px', textAlign: 'center', width: '100%' }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '16px', backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+                            <Music2 size={22} color="#fff" />
+                        </div>
                     </div>
+                    <div>
+                        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>YouTube Music</h3>
+                        <p style={{ fontSize: '12px', color: '#a1a1aa', maxWidth: '240px', margin: '0 auto', lineHeight: '1.4' }}>
+                            {form.note || t('home.loginNoteYtmusic', 'Sign in with your Google Account')}
+                        </p>
+                    </div>
+                    {ytmusicError && (
+                        <p style={{ fontSize: '12px', color: '#f87171', backgroundColor: 'rgba(69, 10, 10, 0.5)', padding: '6px 12px', borderRadius: '8px', border: '1px solid rgba(185, 28, 28, 0.4)' }}>
+                            {ytmusicError}
+                        </p>
+                    )}
+                    <button
+                        type="button"
+                        onClick={handleYtmusicLogin}
+                        disabled={ytmusicLoading}
+                        className="bravais-chrome-button is-primary"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: '9999px', backgroundColor: '#dc2626', color: '#fff', fontWeight: 500, fontSize: '14px', cursor: 'pointer', border: 'none' }}
+                    >
+                        {ytmusicLoading ? <Loader2 size={16} className="animate-spin" /> : <ExternalLink size={16} />}
+                        <span>{ytmusicLoading ? t('home.openingLogin', 'Opening sign-in window...') : t('home.signInWithGoogle', 'Sign in with Google')}</span>
+                    </button>
                 </div>
-            )}
-            <BravaisSeamFlip flipKey={form.qr.kind} style={QR_FACE_STYLE}>
-                <LoginQr qr={form.qr} />
-            </BravaisSeamFlip>
-            {methods?.current && <p className="bravais-login-current">{methods.current}</p>}
-            {form.status && (
-                <BravaisSeamFlipText as="p" flipKey={form.status} className={`bravais-login-status is-${form.tone}`} data-bravais-login-status>
-                    {form.status}
-                </BravaisSeamFlipText>
-            )}
-            {(restart || retry) && (
-                <span className="bravais-form-buttons">
-                    {restart && (
-                        <button type="button" className="bravais-chrome-button is-primary" data-bravais-form-action="restart"
-                            disabled={restart.restarting} onClick={actions.restart}>
-                            {restart.restarting ? <Loader2 aria-hidden className="animate-spin" /> : <ServerCog aria-hidden />}
-                            {restart.label}
-                        </button>
+            ) : (
+                <>
+                    {methods && (
+                        <div className="bravais-login-methods" data-bravais-login-methods>
+                            <p className="is-label">{methods.title}</p>
+                            <p className="is-hint">{methods.hint}</p>
+                            <div className="bravais-login-method-options">
+                                {methods.options.map(option => (
+                                    <button
+                                        key={option.id}
+                                        type="button"
+                                        aria-pressed={option.selected}
+                                        data-bravais-login-method={option.id}
+                                        className={option.selected ? 'is-selected' : undefined}
+                                        onClick={() => actions.selectMethod(option.id)}
+                                    >
+                                        {LOGIN_METHOD_ICONS[option.iconKey] && <img src={LOGIN_METHOD_ICONS[option.iconKey]} alt="" aria-hidden />}
+                                        <span>{option.label}</span>
+                                        {option.selected && <Check aria-hidden />}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                     )}
-                    {retry && (
-                        <button type="button" className="bravais-chrome-button is-primary" data-bravais-form-action="retry"
-                            disabled={retry.disabled} onClick={actions.retry}>
-                            <RotateCcw aria-hidden />{retry.label}
-                            {retry.cooldownSeconds !== null && (
-                                <span className="bravais-login-cooldown" data-bravais-login-cooldown={retry.cooldownSeconds}>
-                                    {t('libraryBravaisAccount.cooldown', { seconds: retry.cooldownSeconds })}
-                                </span>
+                    <BravaisSeamFlip flipKey={form.qr.kind} style={QR_FACE_STYLE}>
+                        <LoginQr qr={form.qr} />
+                    </BravaisSeamFlip>
+                    {methods?.current && <p className="bravais-login-current">{methods.current}</p>}
+                    {form.status && (
+                        <BravaisSeamFlipText as="p" flipKey={form.status} className={`bravais-login-status is-${form.tone}`} data-bravais-login-status>
+                            {form.status}
+                        </BravaisSeamFlipText>
+                    )}
+                    {(restart || retry) && (
+                        <span className="bravais-form-buttons">
+                            {restart && (
+                                <button type="button" className="bravais-chrome-button is-primary" data-bravais-form-action="restart"
+                                    disabled={restart.restarting} onClick={actions.restart}>
+                                    {restart.restarting ? <Loader2 aria-hidden className="animate-spin" /> : <ServerCog aria-hidden />}
+                                    {restart.label}
+                                </button>
                             )}
-                        </button>
+                            {retry && (
+                                <button type="button" className="bravais-chrome-button is-primary" data-bravais-form-action="retry"
+                                    disabled={retry.disabled} onClick={actions.retry}>
+                                    <RotateCcw aria-hidden />{retry.label}
+                                    {retry.cooldownSeconds !== null && (
+                                        <span className="bravais-login-cooldown" data-bravais-login-cooldown={retry.cooldownSeconds}>
+                                            {t('libraryBravaisAccount.cooldown', { seconds: retry.cooldownSeconds })}
+                                        </span>
+                                    )}
+                                </button>
+                            )}
+                        </span>
                     )}
-                </span>
+                    {form.failureHelp && (
+                        <BravaisLoginFailureHelpView key={form.sessionId} help={form.failureHelp} providerId={form.providerId} actions={actions} />
+                    )}
+                    <p className="bravais-login-note">{form.note}</p>
+                </>
             )}
-            {form.failureHelp && (
-                // 按会话代次换实例：重试后的下一次失败重新收起，复制的反馈也只属于这一轮。
-                <BravaisLoginFailureHelpView key={form.sessionId} help={form.failureHelp} providerId={form.providerId} actions={actions} />
-            )}
-            <p className="bravais-login-note">{form.note}</p>
         </section>
     );
 };

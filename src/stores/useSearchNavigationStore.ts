@@ -70,7 +70,7 @@ export const resolveSearchSource = (tab: HomeViewTab | SearchSource): SearchSour
         return tab;
     }
     if (tab !== 'playlist' && tab !== 'albums' && tab !== 'radio') return tab as OnlineProviderId;
-    return 'netease';
+    return 'ytmusic';
 };
 
 export const resolveCommandPaletteSearchSource = (
@@ -80,7 +80,7 @@ export const resolveCommandPaletteSearchSource = (
 ): SearchSource => {
     if (currentSong && isLocalPlaybackSong(currentSong)) return 'local';
     if (currentSong && isNavidromePlaybackSong(currentSong)) return 'navidrome';
-    if (currentSong || searchSourceTab === 'netease') return activeOnlineProviderId;
+    if (currentSong || searchSourceTab === 'netease' || searchSourceTab === 'ytmusic') return activeOnlineProviderId;
     return searchSourceTab;
 };
 
@@ -179,7 +179,7 @@ const getInitialHomeViewTab = (): HomeViewTab => {
 export const useSearchNavigationStore = create<SearchNavigationState>((set, get) => ({
     homeViewTab: getInitialHomeViewTab(),
     searchQuery: '',
-    searchSourceTab: 'netease',
+    searchSourceTab: 'ytmusic',
     searchResults: null,
     searchReturnView: 'home',
     isSearchOpen: false,

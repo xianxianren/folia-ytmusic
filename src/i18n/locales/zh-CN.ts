@@ -1255,6 +1255,8 @@ export default {
     "yourPlaylists": "您的歌单",
     "searchPlaceholder": "搜索音乐...",
     "songs": "首",
+    "loginTitleYtmusic": "登录 YouTube Music",
+    "loginNoteYtmusic": "通过 Google 账号登录 YouTube Music",
     "loginTitle": "使用网易云APP扫码",
     "loginNote": "打开网易云音乐APP > 发现 > 扫一扫",
     "loginTitleKugou": "使用酷狗音乐APP扫码",

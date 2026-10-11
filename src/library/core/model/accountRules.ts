@@ -44,15 +44,15 @@ export const resolveProviderSelectLabel = (provider: ProviderAccountSummary): Li
 
 // ─── 当前平台 ───────────────────────────────────────────────────────────
 
-/** 存的当前平台不在 provider 列表里（例如 mod 源被关掉）时回落到网易；账户缓存不动（原 useOnlineProviderPlatform）。 */
+/** 存的当前平台不在 provider 列表里（例如 mod 源被关掉）时回落到 ytmusic；账户缓存不动。 */
 export const resolveActiveProviderId = (
     providers: readonly ProviderAccountSummary[],
     storedProviderId: OnlineProviderId,
 ): OnlineProviderId => (
-    providers.some(provider => provider.providerId === storedProviderId) ? storedProviderId : 'netease'
+    providers.some(provider => provider.providerId === storedProviderId) ? storedProviderId : 'ytmusic'
 );
 
-/** 当前平台的摘要；回落后的 id 也找不到（列表里没有网易）时取第一个。 */
+/** 当前平台的摘要；回落后的 id 也找不到时取第一个。 */
 export const resolveActiveProviderSummary = (
     providers: readonly ProviderAccountSummary[],
     activeProviderId: OnlineProviderId,
@@ -93,18 +93,19 @@ export const canLogoutProvider = (
 // ─── 登录文案 ───────────────────────────────────────────────────────────
 
 const LOGIN_COPY_BY_PROVIDER: Readonly<Record<string, { title: string; note: string }>> = {
+    ytmusic: { title: 'home.loginTitleYtmusic', note: 'home.loginNoteYtmusic' },
     kugou: { title: 'home.loginTitleKugou', note: 'home.loginNoteKugou' },
     qq: { title: 'home.loginTitleQq', note: 'home.loginNoteQq' },
     bodian: { title: 'home.loginTitleBodian', note: 'home.loginNoteBodian' },
 };
-const NETEASE_LOGIN_COPY = { title: 'home.loginTitle', note: 'home.loginNote' };
+const YTMUSIC_LOGIN_COPY = { title: 'home.loginTitleYtmusic', note: 'home.loginNoteYtmusic' };
 
-/** 登录界面的标题与说明；没有专属文案的 provider（含网易与未知 / mod 源）用网易的（现状，A0 钉着）。 */
+/** 登录界面的标题与说明；没有专属文案的 provider 用 YouTube Music 的。 */
 export const resolveLoginCopy = (providerId: OnlineProviderId): { title: LibraryHomeMessage; note: LibraryHomeMessage } => {
     // 只认自有属性：'constructor' 这类 id 不该从原型链上取到东西。
     const copy = Object.prototype.hasOwnProperty.call(LOGIN_COPY_BY_PROVIDER, providerId)
         ? LOGIN_COPY_BY_PROVIDER[providerId]
-        : NETEASE_LOGIN_COPY;
+        : YTMUSIC_LOGIN_COPY;
     return { title: { key: copy.title }, note: { key: copy.note } };
 };
 
