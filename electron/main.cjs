@@ -20,6 +20,7 @@ const wallpaperWatchdogModule = require('./wallpaperWatchdog.cjs');
 const { requestWallpaperEntryConfirmation } = require('./wallpaperEntryRequest.cjs');
 const windowsWallpaperModule = require('./windowsWallpaperController.cjs');
 const { createWindowsWallpaperTargetResolver } = require('./windowsWallpaperTarget.cjs');
+const { createWindowsWallpaperMouseInjector } = require('./windowsWallpaperMouse.cjs');
 const { DEFAULT_DISCORD_APPLICATION_ID, createDiscordPresenceController } = require('./discordPresence.cjs');
 const { createYtmusicAuth } = require('./ytmusicAuth.cjs');
 const { createVoiceInputPauseMonitor } = require('./voiceInputPause.cjs');
