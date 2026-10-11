@@ -20,13 +20,8 @@ const wallpaperWatchdogModule = require('./wallpaperWatchdog.cjs');
 const { requestWallpaperEntryConfirmation } = require('./wallpaperEntryRequest.cjs');
 const windowsWallpaperModule = require('./windowsWallpaperController.cjs');
 const { createWindowsWallpaperTargetResolver } = require('./windowsWallpaperTarget.cjs');
-const { createWindowsWallpaperMouseInjector } = require('./windowsWallpaperMouse.cjs');
-const macWallpaperModule = require('./macWallpaperController.cjs');
-const { createKugouApiBridge } = require('./kugouApiBridge.cjs');
-const { createBodianApiBridge } = require('./bodianApiBridge.cjs');
-const { createBodianMediaPolicy } = require('./bodian/mediaCors.cjs');
-const { createQqAuthSessionRepository } = require('./qqAuthSessionRepository.cjs');
 const { DEFAULT_DISCORD_APPLICATION_ID, createDiscordPresenceController } = require('./discordPresence.cjs');
+const { createYtmusicAuth } = require('./ytmusicAuth.cjs');
 const { createVoiceInputPauseMonitor } = require('./voiceInputPause.cjs');
 const { createDisplaySleepBlocker } = require('./displaySleepBlocker.cjs');
 const { createLyricApi } = require('./lyricApi.cjs');
@@ -100,25 +95,7 @@ protocol.registerSchemesAsPrivileged([
   MOD_PROTOCOL_PRIVILEGED_SCHEME,
 ]);
 
-// Trusts only the known KuGou media CDN hostname mismatch while preserving TLS checks elsewhere.
-app.on('certificate-error', (event, _webContents, requestUrl, error, _certificate, callback) => {
-  let isAllowedKugouMediaRequest = false;
-  try {
-    const parsedUrl = new URL(requestUrl);
-    isAllowedKugouMediaRequest =
-      parsedUrl.protocol === 'https:' &&
-      parsedUrl.hostname === 'fs.youthandroid2.kugou.com' &&
-      error === 'net::ERR_CERT_COMMON_NAME_INVALID';
-  } catch {
-    isAllowedKugouMediaRequest = false;
-  }
-
-  if (isAllowedKugouMediaRequest) {
-    event.preventDefault();
-    callback(true);
-    return;
-  }
-
+app.on('certificate-error', (_event, _webContents, _requestUrl, _error, _certificate, callback) => {
   callback(false);
 });
 
@@ -190,19 +167,11 @@ const transcodeService = createTranscodeService({
   net: electronNet,
   onCacheWrite: pruneMediaCache,
 });
-// KuGou credentials stay inside the main process and are encrypted lazily after Electron is ready.
-// The bridge refuses Linux's plaintext `basic_text` fallback and degrades to an in-memory session.
-const kugouApiBridge = createKugouApiBridge({ store, safeStorage });
-const bodianMediaPolicy = createBodianMediaPolicy();
-const bodianApiBridge = createBodianApiBridge({ store, safeStorage,
-  onAudioSource: url => bodianMediaPolicy.register(url),
-  requestFactory: (options, onResponse) => {
-    const request = electronNet.request(options);
-    request.on('response', onResponse);
-    return request;
-  },
+const ytmusicAuth = createYtmusicAuth({
+  store,
+  getMainWindow: () => mainWindow,
 });
-const qqAuthSessionRepository = createQqAuthSessionRepository({ store, safeStorage });
+
 
 // --- Desktop wallpaper mode (Wayland layer-shell via windowtolayer / X11 desktop window) ---
 // Settings keys follow the existing electron-store key/value chain; values are normalized here in
@@ -2046,7 +2015,7 @@ const stageApi = createStageApi({
   stageApiTokenSettingKey: STAGE_API_TOKEN_SETTING_KEY,
   stageApiPortSettingKey: STAGE_API_PORT_SETTING_KEY,
   defaultStageApiPort: DEFAULT_STAGE_API_PORT,
-  getNeteasePort: () => neteaseBackend.getPort(),
+  getNeteasePort: () => null,
 });
 
 const lyricApi = createLyricApi({
@@ -2892,55 +2861,13 @@ function setupFileSystemAccessPermissionHandlers() {
 function setupCorsBypassHandlers() {
   const ses = session.defaultSession;
 
-  const getKugouMediaRequestInfo = details => {
-    const parsedUrl = new URL(details.url);
-    const isMediaRequest = details.resourceType === 'media' || parsedUrl.hostname.startsWith('fs.');
-    return isMediaRequest ? {
-      protocol: parsedUrl.protocol,
-      hostname: parsedUrl.hostname,
-      resourceType: details.resourceType,
-    } : null;
-  };
   ses.webRequest.onHeadersReceived((details, callback) => {
     const responseHeaders = { ...details.responseHeaders };
-    const originUrl = details.url;
-
-    let isTargetDomain = false;
-    try {
-      const parsedUrl = new URL(originUrl);
-      const hostname = parsedUrl.hostname;
-      isTargetDomain =
-        hostname === 'qq.com' ||
-        hostname.endsWith('.qq.com') ||
-        hostname === 'y.gtimg.cn' ||
-        hostname === 'kugou.com' ||
-        hostname.endsWith('.kugou.com') ||
-        // Bodian audio and cover CDNs may omit CORS headers needed by Web Audio and canvas/WebGL.
-        bodianMediaPolicy.allows(details);
-    } catch (error) {
-      isTargetDomain = false;
-    }
-
-    if (isTargetDomain) {
-      removeCorsResponseHeaders(responseHeaders);
-      responseHeaders['Access-Control-Allow-Origin'] = ['*'];
-      responseHeaders['Access-Control-Allow-Headers'] = ['*'];
-      responseHeaders['Access-Control-Allow-Methods'] = ['GET, POST, OPTIONS, PUT, DELETE'];
-    }
-
+    removeCorsResponseHeaders(responseHeaders);
+    responseHeaders['Access-Control-Allow-Origin'] = ['*'];
+    responseHeaders['Access-Control-Allow-Headers'] = ['*'];
+    responseHeaders['Access-Control-Allow-Methods'] = ['GET, POST, OPTIONS, PUT, DELETE'];
     callback({ cancel: false, responseHeaders });
-  });
-
-  ses.webRequest.onBeforeRedirect(details => bodianMediaPolicy.followRedirect(details));
-
-  ses.webRequest.onErrorOccurred({ urls: ['*://*.kugou.com/*'] }, details => {
-    const requestInfo = getKugouMediaRequestInfo(details);
-    if (!requestInfo) return;
-    if (requestInfo.resourceType === 'media' && details.error === 'net::ERR_FAILED') return;
-    console.warn('[KuGouMedia] request:error', {
-      ...requestInfo,
-      error: details.error,
-    });
   });
 }
 
@@ -4076,36 +4003,7 @@ async function clearCoverCacheDirectory() {
   }
 }
 
-const { createNetworkRecorder } = require('./networkRecorder.cjs');
-const { createNeteaseBackend } = require('./neteaseBackend.cjs');
-const { createQqBackend } = require('./qqBackend.cjs');
-const { registerLoginBackendIpc } = require('./loginBackendIpc.cjs');
 
-// 内嵌后端（网易、QQ）的出站连接记录：要在任何后端发出请求之前开始订阅。
-const networkRecorder = createNetworkRecorder();
-networkRecorder.start();
-
-function broadcastToWindows(channel, payload) {
-  BrowserWindow.getAllWindows().forEach((win) => {
-    if (!win.isDestroyed()) {
-      win.webContents.send(channel, payload);
-    }
-  });
-}
-
-// 必须在任何代码 require 网易上游之前创建：它先准备匿名 token 文件、替换上游模块，再加载上游（见 neteaseBackend.cjs）。
-// 拉起本身（网络请求）在 app ready 之后由 start() 进行。
-const neteaseBackend = createNeteaseBackend({ broadcast: broadcastToWindows, networkRecorder });
-
-// Runs @yakult-green-tea/qq-music-api in-process. Device identifiers remain in their existing file;
-// account credentials are owned by the API and cross this boundary only through an encrypted
-// main-process repository. The renderer continues to receive only an opaque session token.
-const qqBackend = createQqBackend({
-  broadcast: broadcastToWindows,
-  networkRecorder,
-  getStateFilePath: () => path.join(app.getPath('userData'), 'qq-auth-state', 'qq-device.json'),
-  authSessionRepository: qqAuthSessionRepository,
-});
 
 function isElectronDevRuntime() {
   return process.env.ELECTRON_DEV === 'true' || process.env.NODE_ENV === 'development';
@@ -5184,11 +5082,7 @@ app.whenReady().then(async () => {
   });
 
   setupAutoUpdater();
-  // Not awaited: this performs network round trips (xeapi key, anonymous token) that used to keep
-  // the window from appearing at all on a slow or blocked route. Status reaches the renderer over
-  // netease-api-status-changed, and get-netease-port reports null until the server is listening.
-  void neteaseBackend.start();
-  await qqBackend.start();
+
   try {
     await stageApi.startStageServerIfNeeded();
   } catch (error) {
@@ -5421,7 +5315,7 @@ app.on('before-quit', () => {
     }
   }
   void discordPresence.destroy();
-  void qqBackend.stop();
+
   void lyricApi.stop();
 });
 
@@ -5901,24 +5795,7 @@ ipcMain.handle('clear-local-cover-assets', async () => {
   return localCoverAssetStore.clear();
 });
 
-// 内嵌后端的端口、状态、重启、诊断快照与主动自检（electron/loginBackendIpc.cjs）。
-registerLoginBackendIpc({
-  ipcMain,
-  app,
-  safeStorage,
-  getDefaultSession: () => session.defaultSession,
-  neteaseBackend,
-  qqBackend,
-});
 
-ipcMain.handle('kugou-api-status', () => kugouApiBridge.getStatus());
-ipcMain.handle('kugou-api-request', (_event, operation, params) => kugouApiBridge.request(operation, params));
-ipcMain.handle('bodian-api-request', (event, operation, params) => {
-  if (!isTrustedMainWindowContents(event.sender)) {
-    return { ok: false, error: { code: 'unavailable', message: 'Untrusted Bodian request' } };
-  }
-  return bodianApiBridge.request(operation, params);
-});
 
 ipcMain.handle('window-minimize', () => {
   if (!mainWindow || mainWindow.isDestroyed()) {
@@ -6001,6 +5878,19 @@ ipcMain.handle('app-quit', (event) => {
   app.quit();
   return true;
 });
+
+// YouTube Music Auth & Innertube IPC
+ipcMain.handle('ytmusic-login-open', async () => ytmusicAuth.openLoginWindow());
+ipcMain.handle('ytmusic-get-auth', async () => ytmusicAuth.getAuth());
+ipcMain.handle('ytmusic-logout', async () => ytmusicAuth.logout());
+ipcMain.handle('ytmusic-request', async (_event, endpoint, body) => ytmusicAuth.request(endpoint, body));
+ipcMain.handle('ytmusic-search', async (_event, query, limit, offset) => ytmusicAuth.searchSongs(query, limit, offset));
+ipcMain.handle('ytmusic-get-audio-url', async (_event, videoId) => ytmusicAuth.getAudioStreamUrl(videoId));
+ipcMain.handle('ytmusic-get-song-detail', async (_event, videoId) => ytmusicAuth.getSongDetail(videoId));
+ipcMain.handle('ytmusic-get-lyrics', async (_event, videoId) => ytmusicAuth.getLyrics(videoId));
+ipcMain.handle('ytmusic-get-user-playlists', async (_event, limit, offset) => ytmusicAuth.getUserPlaylists(limit, offset));
+ipcMain.handle('ytmusic-get-playlist-tracks', async (_event, browseId, limit, offset) => ytmusicAuth.getPlaylistTracks(browseId, limit, offset));
+ipcMain.handle('ytmusic-get-artist-detail', async (_event, artistId) => ytmusicAuth.getArtistDetail(artistId));
 
 ipcMain.handle('window-is-maximized', () => {
   if (!mainWindow || mainWindow.isDestroyed()) {

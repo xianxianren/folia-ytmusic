@@ -23,8 +23,7 @@ type HomeProviderRefreshParams = {
     /** 当前平台账户摘要的新鲜度；正在刷新时不再叠一次。 */
     activeProviderFreshness: ProviderAccountSummary['freshness'] | undefined;
     refreshActiveProviderPlaylists: () => Promise<unknown>;
-    /** Kugou is the one provider whose failure can mean an expired login worth telling the user about. */
-    checkKugouLoginStatus: () => Promise<unknown>;
+    checkKugouLoginStatus?: () => Promise<unknown>;
 };
 
 export const useHomeProviderRefresh = ({
@@ -62,7 +61,7 @@ export const useHomeProviderRefresh = ({
                 name: error instanceof Error ? error.name : 'Error',
             });
             const account = useOnlineProviderAccountStore.getState().accounts[providerId];
-            if (providerId !== 'kugou' || !account?.user) return;
+            if (providerId !== 'kugou' || !account?.user || !checkKugouLoginStatus) return;
 
             const user = await checkKugouLoginStatus();
             const refreshedAccount = useOnlineProviderAccountStore.getState().accounts.kugou;

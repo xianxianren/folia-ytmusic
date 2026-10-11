@@ -2,10 +2,7 @@ import { OnlineProviderError } from '../../types/onlineMusic';
 import type { OnlineMusicProvider, OnlineProviderId, ProviderCapabilities } from '../../types/onlineMusic';
 import type { SongResult } from '../../types';
 import { getPlaybackSourceRef } from '../../utils/appPlaybackGuards';
-import { neteaseProvider } from './neteaseProvider';
-import { kugouProvider } from './kugouProvider';
-import { qqProvider } from './qqProvider';
-import { bodianProvider } from './bodianProvider';
+import { ytmusicProvider } from './ytmusicProvider';
 
 // src/services/onlineMusic/providerRegistry.ts
 
@@ -78,7 +75,4 @@ export const requireOnlineMusicProviderForSong = (song: SongResult): OnlineMusic
     return requireOnlineMusicProvider(sourceRef.providerId);
 };
 
-registerOnlineMusicProvider(neteaseProvider);
-registerOnlineMusicProvider(kugouProvider);
-registerOnlineMusicProvider(qqProvider);
-registerOnlineMusicProvider(bodianProvider);
+registerOnlineMusicProvider(ytmusicProvider);

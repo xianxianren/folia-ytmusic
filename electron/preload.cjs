@@ -130,25 +130,15 @@ contextBridge.exposeInMainWorld('electron', {
     segmentLyrics: (lines) => ipcRenderer.invoke('segment-lyrics', lines),
     testAiConnection: (settings) => ipcRenderer.invoke('ai-test-connection', settings),
     fetchLyricProxy: (url, init) => ipcRenderer.invoke('lyric-proxy-fetch', url, init),
-    getNeteasePort: () => ipcRenderer.invoke('get-netease-port'),
-    getNeteaseApiStatus: () => ipcRenderer.invoke('get-netease-api-status'),
-    getLoginDiagnostics: (providerId) => ipcRenderer.invoke('get-login-diagnostics', providerId),
-    runLoginSelfCheck: (providerId) => ipcRenderer.invoke('run-login-self-check', providerId),
-    restartNeteaseApi: () => ipcRenderer.invoke('restart-netease-api'),
-    onNeteaseApiStatusChanged: (callback) => {
-        const listener = (_event, status) => callback(status);
-        ipcRenderer.on('netease-api-status-changed', listener);
-        return () => ipcRenderer.removeListener('netease-api-status-changed', listener);
-    },
-    getKugouApiStatus: () => ipcRenderer.invoke('kugou-api-status'),
-    kugouRequest: (operation, params) => ipcRenderer.invoke('kugou-api-request', operation, params),
-    bodianRequest: (operation, params) => ipcRenderer.invoke('bodian-api-request', operation, params),
-    getQqPort: () => ipcRenderer.invoke('get-qq-port'),
-    getQqApiStatus: () => ipcRenderer.invoke('get-qq-api-status'),
-    onQqApiStatusChanged: (callback) => {
-        const listener = (_event, status) => callback(status);
-        ipcRenderer.on('qq-api-status-changed', listener);
-        return () => ipcRenderer.removeListener('qq-api-status-changed', listener);
+    // YouTube Music Auth & Request Bridge
+    openYtmusicLogin: () => ipcRenderer.invoke('ytmusic-login-open'),
+    getYtmusicAuth: () => ipcRenderer.invoke('ytmusic-get-auth'),
+    logoutYtmusic: () => ipcRenderer.invoke('ytmusic-logout'),
+    ytmusicRequest: (endpoint, body) => ipcRenderer.invoke('ytmusic-request', endpoint, body),
+    onYtmusicAuthChanged: (callback) => {
+        const listener = (_event, user) => callback(user);
+        ipcRenderer.on('ytmusic-auth-changed', listener);
+        return () => ipcRenderer.removeListener('ytmusic-auth-changed', listener);
     },
     minimizeWindow: () => ipcRenderer.invoke('window-minimize'),
     toggleMaximizeWindow: () => ipcRenderer.invoke('window-toggle-maximize'),
@@ -320,5 +310,22 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.on('folia-mods:log', listener);
             return () => ipcRenderer.removeListener('folia-mods:log', listener);
         },
+    },
+    // YouTube Music API
+    openYtmusicLogin: () => ipcRenderer.invoke('ytmusic-login-open'),
+    getYtmusicAuth: () => ipcRenderer.invoke('ytmusic-get-auth'),
+    logoutYtmusic: () => ipcRenderer.invoke('ytmusic-logout'),
+    ytmusicRequest: (endpoint, body) => ipcRenderer.invoke('ytmusic-request', endpoint, body),
+    ytmusicSearch: (query, limit, offset) => ipcRenderer.invoke('ytmusic-search', query, limit, offset),
+    getYtmusicAudioUrl: (videoId) => ipcRenderer.invoke('ytmusic-get-audio-url', videoId),
+    getYtmusicSongDetail: (videoId) => ipcRenderer.invoke('ytmusic-get-song-detail', videoId),
+    getYtmusicLyrics: (videoId) => ipcRenderer.invoke('ytmusic-get-lyrics', videoId),
+    getYtmusicUserPlaylists: (limit, offset) => ipcRenderer.invoke('ytmusic-get-user-playlists', limit, offset),
+    getYtmusicPlaylistTracks: (browseId, limit, offset) => ipcRenderer.invoke('ytmusic-get-playlist-tracks', browseId, limit, offset),
+    getYtmusicArtistDetail: (artistId) => ipcRenderer.invoke('ytmusic-get-artist-detail', artistId),
+    onYtmusicAuthChanged: (callback) => {
+        const listener = (_event, user) => callback(user);
+        ipcRenderer.on('ytmusic-auth-changed', listener);
+        return () => ipcRenderer.removeListener('ytmusic-auth-changed', listener);
     },
 });

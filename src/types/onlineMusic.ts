@@ -3,7 +3,7 @@ import type { LyricData, ReplayGainInfo, SongResult, UnifiedSong } from '../type
 // src/types/onlineMusic.ts
 
 export type MediaId = string | number;
-export type OnlineProviderId = 'netease' | (string & {});
+export type OnlineProviderId = 'ytmusic' | (string & {});
 export type AudioQualityPreference = 'standard' | 'high' | 'lossless' | 'hires';
 export type ProviderCatalogEntityKind = 'album' | 'artist' | 'playlist';
 

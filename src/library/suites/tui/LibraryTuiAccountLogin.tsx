@@ -128,10 +128,14 @@ const LibraryTuiAccountLogin: React.FC<LibraryTuiAccountLoginProps> = ({
                         </div>
                     ) : awaitingMethod ? (
                         <span className="p-3 text-center text-[11px] text-zinc-500">{methodStep?.pending}</span>
-                    ) : session.qrImageUrl ? (
-                        <img src={session.qrImageUrl} alt="QR Code" className="h-[152px] w-[152px]" />
                     ) : (
-                        <span className="text-zinc-500" aria-hidden="true">…</span>
+                        <button
+                            type="button"
+                            onClick={() => void window.electron?.openYtmusicLogin?.()}
+                            className="p-2 text-center text-[11px] font-bold text-red-500 hover:underline cursor-pointer"
+                        >
+                            [Login with Google]
+                        </button>
                     )}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col gap-1">

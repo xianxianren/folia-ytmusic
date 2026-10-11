@@ -48,7 +48,7 @@ type PageInput = { limit: number; offset: number };
 const activeProviderId = (): OmniProviderId => {
     const storedProviderId = useOnlineProviderAccountStore.getState().activeProviderId;
     // A persisted selection can outlive its provider when switching builds or branches.
-    return getOnlineMusicProvider(storedProviderId) ? storedProviderId : 'netease';
+    return getOnlineMusicProvider(storedProviderId) ? storedProviderId : 'ytmusic';
 };
 
 const activeProvider = () => requireOnlineMusicProvider(activeProviderId());

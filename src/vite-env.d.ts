@@ -882,26 +882,6 @@ declare global {
           body?: string;
         },
       ) => Promise<ElectronLyricProxyResponse>;
-      getNeteasePort: () => Promise<number>;
-      getNeteaseApiStatus: () => Promise<ElectronNeteaseApiStatus>;
-      /** 内嵌后端（网易、QQ）的诊断快照；没有内嵌后端的 provider 回 null。 */
-      getLoginDiagnostics?: (providerId: string) => Promise<ElectronLoginDiagnostics | null>;
-      /** 扫码登录失败后的主动自检（electron/loginSelfCheck.cjs）。 */
-      runLoginSelfCheck?: (providerId: string) => Promise<import('./types/onlineMusic').LoginSelfCheckResult | null>;
-      restartNeteaseApi: () => Promise<ElectronNeteaseApiStatus>;
-      onNeteaseApiStatusChanged: (callback: (status: ElectronNeteaseApiStatus) => void) => () => void;
-      getKugouApiStatus: () => Promise<ElectronKugouApiStatus>;
-      bodianRequest: (
-        operation: import('./services/onlineMusic/bodianTransport').BodianOperation,
-        params?: import('./services/onlineMusic/bodianTransport').BodianParams,
-      ) => Promise<import('./services/onlineMusic/bodianTransport').BodianBridgeResult>;
-      kugouRequest: (
-        operation: ElectronKugouOperation,
-        params?: Record<string, string | number | boolean | undefined>,
-      ) => Promise<unknown>;
-      getQqPort: () => Promise<number | null>;
-      getQqApiStatus: () => Promise<ElectronQqApiStatus>;
-      onQqApiStatusChanged: (callback: (status: ElectronQqApiStatus) => void) => () => void;
       minimizeWindow: () => Promise<boolean>;
       toggleMaximizeWindow: () => Promise<boolean>;
       toggleFullscreenWindow: () => Promise<boolean>;
@@ -1005,6 +985,19 @@ declare global {
         onExportProgress: (callback: (progress: ModExportProgress) => void) => () => void;
         onModLog: (callback: (entry: ModLogEntry) => void) => () => void;
       };
+      // YouTube Music integration
+      openYtmusicLogin?: () => Promise<{ id: string; nickname: string; avatarUrl?: string } | null>;
+      getYtmusicAuth?: () => Promise<{ id: string; nickname: string; avatarUrl?: string } | null>;
+      logoutYtmusic?: () => Promise<void>;
+      ytmusicRequest?: (endpoint: string, body?: Record<string, unknown>) => Promise<any>;
+      ytmusicSearch?: (query: string, limit?: number, offset?: number) => Promise<{ items: any[]; hasMore: boolean; nextOffset: number }>;
+      getYtmusicAudioUrl?: (videoId: string) => Promise<{ url: string; expiresAt: number } | null>;
+      getYtmusicSongDetail?: (videoId: string) => Promise<any>;
+      getYtmusicLyrics?: (videoId: string) => Promise<string | null>;
+      getYtmusicUserPlaylists?: (limit?: number, offset?: number) => Promise<{ items: any[]; hasMore: boolean; nextOffset: number }>;
+      getYtmusicPlaylistTracks?: (browseId: string, limit?: number, offset?: number) => Promise<{ items: any[]; hasMore: boolean; nextOffset: number }>;
+      getYtmusicArtistDetail?: (artistId: string) => Promise<any>;
+      onYtmusicAuthChanged?: (callback: (user: { id: string; nickname: string; avatarUrl?: string } | null) => void) => () => void;
     };
   }
 }

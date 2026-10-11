@@ -69,10 +69,6 @@ import { consumeProgrammaticPause, playbackFade } from './services/playbackFade'
 import { getSongArtistLabel, getSongCoverUrl } from './services/onlineMusic/songMetadata';
 import { isNavidromeEnabled } from './services/navidromeService';
 import { useAppNavigation } from './hooks/useAppNavigation';
-import { useNeteaseLibrary } from './hooks/useNeteaseLibrary';
-import { useKugouLibrary } from './hooks/useKugouLibrary';
-import { useQqLibrary } from './hooks/useQqLibrary';
-import { useBodianLibrary } from './hooks/useBodianLibrary';
 import { useLibraryAccountController } from './library/app/useLibraryAccountController';
 import { createLibraryAccountSwitchCleanupPort } from './library/app/createLibraryAccountPort';
 import { useLibraryStageToolsPort } from './library/app/useLibraryStageToolsPort';
@@ -254,6 +250,36 @@ export default function App() {
     // UI State
     const statusMsg = useStatusMessage();
     useElectronNeteaseApiStatus(t);
+
+    // YouTube Music authentication sync
+    useEffect(() => {
+        void window.electron?.getYtmusicAuth?.().then(user => {
+            if (user) {
+                useOnlineProviderAccountStore.getState().updateAccount('ytmusic', {
+                    status: 'authenticated',
+                    user,
+                    freshness: 'fresh',
+                });
+            }
+        });
+
+        const unsubscribe = window.electron?.onYtmusicAuthChanged?.(user => {
+            if (user) {
+                useOnlineProviderAccountStore.getState().updateAccount('ytmusic', {
+                    status: 'authenticated',
+                    user,
+                    freshness: 'fresh',
+                });
+            } else {
+                useOnlineProviderAccountStore.getState().clearAccount('ytmusic');
+            }
+        });
+
+        return () => {
+            unsubscribe?.();
+        };
+    }, []);
+
     // Watches the imported local folders and rescans them when their contents change.
     useLocalLibraryAutoScan();
 
@@ -710,47 +736,36 @@ export default function App() {
         loadMoreSearchResults: state.loadMoreSearchResults,
     })));
 
-    // Netease Library Hook
-    // manages user data, playlists, liked songs, and related actions
-    const {
-        user,
-        playlists,
-        cloudPlaylist,
-        likedSongIds,
-        isSyncing,
-        cacheSize,
-        refreshUserData,
-        updateCacheSize,
-        handleClearCache,
-        handleSyncData,
-        handleLogout,
-        setLikedSongIds,
-    } = useNeteaseLibrary({
-        t,
-    });
+    const user = useOnlineProviderAccountStore(state => state.accounts.ytmusic?.user ?? null);
+    const playlists: ProviderCollection[] = [];
+    const cloudPlaylist: ProviderCollection | null = null;
+    const [likedSongIds, setLikedSongIds] = useState<Set<MediaId>>(() => new Set());
+    const isSyncing = false;
+    const cacheSize = '0 B';
+    const refreshUserData = useCallback(async () => {
+        const user = await window.electron?.getYtmusicAuth?.();
+        if (user) {
+            useOnlineProviderAccountStore.getState().updateAccount('ytmusic', {
+                status: 'authenticated',
+                user,
+                freshness: 'fresh',
+            });
+        }
+    }, []);
+    const updateCacheSize = useCallback(async () => {}, []);
+    const handleClearCache = useCallback(async () => {}, []);
+    const handleSyncData = useCallback(async () => {}, []);
+    const handleLogout = useCallback(async () => {
+        await window.electron?.logoutYtmusic?.();
+        useOnlineProviderAccountStore.getState().clearAccount('ytmusic');
+    }, []);
 
-    const {
-        refresh: refreshKugouLibrary,
-        logout: logoutKugouLibrary,
-        checkLoginStatus: checkKugouLoginStatus,
-    } = useKugouLibrary();
-    const {
-        refresh: refreshQqLibrary,
-        logout: logoutQqLibrary,
-    } = useQqLibrary();
-    const { refresh: refreshBodianLibrary, logout: logoutBodianLibrary } = useBodianLibrary();
     const onlineProviderRefreshers = useMemo<Partial<Record<OnlineProviderId, () => Promise<unknown>>>>(() => ({
-        netease: refreshUserData,
-        kugou: refreshKugouLibrary,
-        qq: refreshQqLibrary,
-        bodian: refreshBodianLibrary,
-    }), [refreshKugouLibrary, refreshQqLibrary, refreshBodianLibrary, refreshUserData]);
+        ytmusic: refreshUserData,
+    }), [refreshUserData]);
     const onlineProviderLogouts = useMemo<Partial<Record<OnlineProviderId, () => Promise<void>>>>(() => ({
-        netease: handleLogout,
-        kugou: logoutKugouLibrary,
-        qq: logoutQqLibrary,
-        bodian: logoutBodianLibrary,
-    }), [handleLogout, logoutKugouLibrary, logoutQqLibrary, logoutBodianLibrary]);
+        ytmusic: handleLogout,
+    }), [handleLogout]);
 
     // 在线账户 controller（Library v2 · A4）：扫码登录、选平台、切换确认与登出都在 core，App 只交出 per-provider 的
     // 刷新与登出，以及确认切换后的播放清理端口。端口读的三样（audio / automix 句柄、歌词写入）都是稳定引用，建一次。
@@ -809,7 +824,6 @@ export default function App() {
         activeProviderId,
         activeProviderFreshness: activeProvider?.freshness,
         refreshActiveProviderPlaylists,
-        checkKugouLoginStatus,
     });
     const {
         stageStatus,

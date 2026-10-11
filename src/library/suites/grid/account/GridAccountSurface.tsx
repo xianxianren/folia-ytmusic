@@ -76,7 +76,7 @@ const buildLoginModalProps = (
                     iconUrl: LOGIN_METHOD_ICONS[option.iconKey] || '',
                 })),
                 selectedId: session.selectedMethodId,
-                onSelect: methodId => void account.selectLoginMethod(methodId),
+                onSelect: (methodId: string) => void account.selectLoginMethod(methodId),
             }
             : undefined,
         backendFailure: view.backendFailure

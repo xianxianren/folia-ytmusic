@@ -1,5 +1,4 @@
 import { omni } from '../../../services/onlineMusic/omni';
-import { useNeteaseApiStatusStore } from '../../../stores/useNeteaseApiStatusStore';
 import { useOnlineProviderAccountStore } from '../../../stores/useOnlineProviderAccountStore';
 import type {
     LibraryAccountAuthPort,
@@ -15,8 +14,7 @@ import type {
 
 // src/library/core/services/providerAccountDeps.ts
 // 在线账户 controller 的默认装配：扫码 auth 直接用 omni 的同名方法；provider 列表与当前平台读
-// useOnlineProviderAccountStore + omni（mod 源增删经 omni.subscribeProviders）；网易后端健康读
-// useNeteaseApiStatusStore；时钟用 window 定时器；诊断环境读 __APP_VERSION__ 与 navigator。
+// useOnlineProviderAccountStore + omni（mod 源增删经 omni.subscribeProviders）；时钟用 window 定时器；诊断环境读 __APP_VERSION__ 与 navigator。
 // 刷新、登出与切换清理属于宿主（App 的 per-provider hook 与播放状态），由调用方以函数形状传入。
 // 单测给 createProviderAccountController 注入假端口，不经过这里。
 
@@ -40,19 +38,16 @@ export const accountStorePort: LibraryAccountStorePort = {
     },
 };
 
-/** 网易本地后端：useNeteaseApiStatusStore 拍平成 controller 要的健康值（web 构建 supported=false）。 */
+/** 旧本地后端端口存根（已移除国内专用后端）。 */
 export const neteaseBackendPort: LibraryNeteaseBackendPort = {
-    getHealth: () => {
-        const state = useNeteaseApiStatusStore.getState();
-        return {
-            supported: state.supported,
-            status: state.status?.status ?? null,
-            error: state.status?.error ?? null,
-            restarting: state.restarting,
-        };
-    },
-    subscribe: listener => useNeteaseApiStatusStore.subscribe(() => listener()),
-    restart: () => useNeteaseApiStatusStore.getState().restart(),
+    getHealth: () => ({
+        supported: false,
+        status: null,
+        error: null,
+        restarting: false,
+    }),
+    subscribe: () => () => {},
+    restart: async () => {},
 };
 
 /** window 定时器（调用时才读 window，模块加载不依赖浏览器环境）。 */

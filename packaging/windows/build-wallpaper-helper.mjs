@@ -28,6 +28,10 @@ if (process.platform !== 'win32') {
 }
 
 mkdirSync(OUT_DIR, { recursive: true });
-run('cargo', ['build', '--release']);
-copyFileSync(path.join(SRC_DIR, 'target', 'release', 'folia-wallpaper-helper.exe'), OUT_BIN);
-console.log(`[wallpaper-helper] built ${OUT_BIN}`);
+try {
+  run('cargo', ['build', '--release']);
+  copyFileSync(path.join(SRC_DIR, 'target', 'release', 'folia-wallpaper-helper.exe'), OUT_BIN);
+  console.log(`[wallpaper-helper] built ${OUT_BIN}`);
+} catch (err) {
+  console.warn('[wallpaper-helper] Cargo not available, skipping wallpaper helper build');
+}

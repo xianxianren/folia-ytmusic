@@ -27,8 +27,8 @@ type OnlineProviderAccountStore = {
 const ACTIVE_PROVIDER_KEY = 'active_online_provider_id';
 
 const getInitialProviderId = (): OnlineProviderId => {
-    if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') return 'netease';
-    return localStorage.getItem(ACTIVE_PROVIDER_KEY) || 'netease';
+    if (typeof localStorage === 'undefined' || typeof localStorage.getItem !== 'function') return 'ytmusic';
+    return localStorage.getItem(ACTIVE_PROVIDER_KEY) || 'ytmusic';
 };
 
 const emptyAccount = (): OnlineProviderAccountState => ({
