@@ -1,4 +1,4 @@
-const { BrowserWindow, session, safeStorage } = require('electron');
+const { app, BrowserWindow, session, safeStorage } = require('electron');
 const crypto = require('crypto');
 
 // electron/ytmusicAuth.cjs
@@ -46,15 +46,70 @@ function buildInnertubeHeaders(cookies, sapisid) {
  */
 function createYtmusicAuth({ store, getMainWindow }) {
   let loginWindow = null;
-  const ses = session.fromPartition(PARTITION);
-  ses.setUserAgent(CHROME_USER_AGENT);
+  let ses = null;
+  let interceptorRegistered = false;
+
+  const audioCache = new Map(); // videoId -> { url, expiresAt }
+  const pendingResolvers = new Map(); // webContentsId -> { resolve, timer, videoId, win }
+
+  /**
+   * 延迟获取分区会话，确保仅在 app ready 后创建
+   */
+  function getSession() {
+    if (!ses) {
+      ses = session.fromPartition(PARTITION);
+      ses.setUserAgent(CHROME_USER_AGENT);
+      if (!interceptorRegistered) {
+        interceptorRegistered = true;
+        ses.webRequest.onBeforeRequest({ urls: ['*://*.googlevideo.com/videoplayback*'] }, (details, callback) => {
+          callback({});
+          const pending = pendingResolvers.get(details.webContentsId);
+          if (pending && (details.url.includes('mime=audio') || details.url.includes('audio'))) {
+            pendingResolvers.delete(details.webContentsId);
+            clearTimeout(pending.timer);
+
+            try {
+              const urlObj = new URL(details.url);
+              urlObj.searchParams.delete('range');
+              const cleanUrl = urlObj.toString();
+              const expireSec = parseInt(urlObj.searchParams.get('expire') || '0', 10);
+              const expiresAt = expireSec ? expireSec * 1000 : Date.now() + 3600 * 1000 * 4;
+
+              audioCache.set(pending.videoId, { url: cleanUrl, expiresAt });
+              pending.resolve({ url: cleanUrl, expiresAt });
+            } catch (_e) {
+              pending.resolve({ url: details.url, expiresAt: Date.now() + 3600 * 1000 * 4 });
+            }
+
+            try {
+              if (pending.win && !pending.win.isDestroyed()) {
+                pending.win.destroy();
+              }
+            } catch (_) {}
+          }
+        });
+      }
+    }
+    return ses;
+  }
+
+  if (app && typeof app.whenReady === 'function') {
+    app.whenReady().then(() => {
+      try {
+        getSession();
+      } catch (err) {
+        console.warn('[YTMusicAuth] Failed to initialize session on app ready', err);
+      }
+    });
+  }
 
   /**
    * 获取持久化分区中的全部相关 Cookie
    */
   async function getPartitionCookies() {
-    const cookies = await ses.cookies.get({ domain: '.youtube.com' });
-    const musicCookies = await ses.cookies.get({ domain: 'music.youtube.com' });
+    const s = getSession();
+    const cookies = await s.cookies.get({ domain: '.youtube.com' });
+    const musicCookies = await s.cookies.get({ domain: 'music.youtube.com' });
     const all = [...cookies, ...musicCookies];
     const unique = new Map();
     for (const c of all) {
@@ -214,7 +269,7 @@ function createYtmusicAuth({ store, getMainWindow }) {
    */
   async function logout() {
     store.delete(STORE_KEY);
-    await ses.clearStorageData({
+    await getSession().clearStorageData({
       storages: ['cookies', 'localstorage', 'cache'],
     });
     const mainWindow = typeof getMainWindow === 'function' ? getMainWindow() : null;
@@ -442,38 +497,6 @@ function createYtmusicAuth({ store, getMainWindow }) {
     }
     return null;
   }
-
-  // 音频流解析状态与全局拦截器
-  const audioCache = new Map(); // videoId -> { url, expiresAt }
-  const pendingResolvers = new Map(); // webContentsId -> { resolve, timer, videoId, win }
-
-  ses.webRequest.onBeforeRequest({ urls: ['*://*.googlevideo.com/videoplayback*'] }, (details, callback) => {
-    callback({});
-    const pending = pendingResolvers.get(details.webContentsId);
-    if (pending && (details.url.includes('mime=audio') || details.url.includes('audio'))) {
-      pendingResolvers.delete(details.webContentsId);
-      clearTimeout(pending.timer);
-
-      try {
-        const urlObj = new URL(details.url);
-        urlObj.searchParams.delete('range');
-        const cleanUrl = urlObj.toString();
-        const expireSec = parseInt(urlObj.searchParams.get('expire') || '0', 10);
-        const expiresAt = expireSec ? expireSec * 1000 : Date.now() + 3600 * 1000 * 4;
-
-        audioCache.set(pending.videoId, { url: cleanUrl, expiresAt });
-        pending.resolve({ url: cleanUrl, expiresAt });
-      } catch (_e) {
-        pending.resolve({ url: details.url, expiresAt: Date.now() + 3600 * 1000 * 4 });
-      }
-
-      try {
-        if (pending.win && !pending.win.isDestroyed()) {
-          pending.win.destroy();
-        }
-      } catch (_) {}
-    }
-  });
 
   /**
    * 利用静音后台窗口获取带有有效 PO Token 与签名的音频流直链
