@@ -94,6 +94,7 @@ export const canLogoutProvider = (
 
 const LOGIN_COPY_BY_PROVIDER: Readonly<Record<string, { title: string; note: string }>> = {
     ytmusic: { title: 'home.loginTitleYtmusic', note: 'home.loginNoteYtmusic' },
+    netease: { title: 'home.loginTitle', note: 'home.loginNote' },
     kugou: { title: 'home.loginTitleKugou', note: 'home.loginNoteKugou' },
     qq: { title: 'home.loginTitleQq', note: 'home.loginNoteQq' },
     bodian: { title: 'home.loginTitleBodian', note: 'home.loginNoteBodian' },

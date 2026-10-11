@@ -132,16 +132,16 @@ describe('active provider fallback', () => {
         expect(resolveActiveProviderId(providers, 'folium.mod-a.source')).toBe('folium.mod-a.source');
     });
 
-    it('falls back to netease when the stored provider went away', () => {
-        expect(resolveActiveProviderId(providers, 'folium.mod-gone.source')).toBe('netease');
-        expect(resolveActiveProviderId([], 'kugou')).toBe('netease');
+    it('falls back to ytmusic when the stored provider went away', () => {
+        expect(resolveActiveProviderId(providers, 'folium.mod-gone.source')).toBe('ytmusic');
+        expect(resolveActiveProviderId([], 'kugou')).toBe('ytmusic');
     });
 
-    it('finds the active summary, or the first provider when even netease is missing', () => {
+    it('finds the active summary, or the first provider when even ytmusic is missing', () => {
         expect(resolveActiveProviderSummary(providers, 'kugou')?.providerId).toBe('kugou');
-        const withoutNetease = [summary({ providerId: 'kugou' }), summary({ providerId: 'qq' })];
-        expect(resolveActiveProviderSummary(withoutNetease, 'netease')?.providerId).toBe('kugou');
-        expect(resolveActiveProviderSummary([], 'netease')).toBeUndefined();
+        const withoutYtmusic = [summary({ providerId: 'kugou' }), summary({ providerId: 'qq' })];
+        expect(resolveActiveProviderSummary(withoutYtmusic, 'ytmusic')?.providerId).toBe('kugou');
+        expect(resolveActiveProviderSummary([], 'ytmusic')).toBeUndefined();
     });
 });
 
@@ -196,13 +196,13 @@ describe('login copy', () => {
         expect(resolveLoginCopy('netease')).toEqual({ title: { key: 'home.loginTitle' }, note: { key: 'home.loginNote' } });
     });
 
-    it('falls back to the netease copy for unknown and mod providers', () => {
-        const netease = { title: { key: 'home.loginTitle' }, note: { key: 'home.loginNote' } };
-        expect(resolveLoginCopy('acct-gamma')).toEqual(netease);
-        expect(resolveLoginCopy('folium.mod-a.source')).toEqual(netease);
+    it('falls back to the ytmusic copy for unknown and mod providers', () => {
+        const ytmusic = { title: { key: 'home.loginTitleYtmusic' }, note: { key: 'home.loginNoteYtmusic' } };
+        expect(resolveLoginCopy('acct-gamma')).toEqual(ytmusic);
+        expect(resolveLoginCopy('folium.mod-a.source')).toEqual(ytmusic);
         // 原型链上的名字不算 provider 专属文案。
-        expect(resolveLoginCopy('constructor')).toEqual(netease);
-        expect(resolveLoginCopy('toString')).toEqual(netease);
+        expect(resolveLoginCopy('constructor')).toEqual(ytmusic);
+        expect(resolveLoginCopy('toString')).toEqual(ytmusic);
     });
 
     it('maps every QR phase to the status key of the old hook', () => {
@@ -267,7 +267,7 @@ describe('login copy', () => {
         expect(resolveLoginSessionCopy({ providerId: 'qq', phase: 'waiting', methods: QQ_METHODS, selectedMethodId: 'wechat', backend: OK_BACKEND }).status)
             .toEqual({ key: 'home.scanQr' });
         expect(resolveLoginSessionCopy({ providerId: 'acct-gamma', phase: 'expired', methods: [], selectedMethodId: null, backend: OK_BACKEND }))
-            .toEqual({ title: { key: 'home.loginTitle' }, note: { key: 'home.loginNote' }, status: { key: 'home.qrExpired' } });
+            .toEqual({ title: { key: 'home.loginTitleYtmusic' }, note: { key: 'home.loginNoteYtmusic' }, status: { key: 'home.qrExpired' } });
     });
 });
 

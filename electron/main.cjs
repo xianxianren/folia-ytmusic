@@ -2868,6 +2868,7 @@ function setupCorsBypassHandlers() {
     responseHeaders['Access-Control-Allow-Origin'] = ['*'];
     responseHeaders['Access-Control-Allow-Headers'] = ['*'];
     responseHeaders['Access-Control-Allow-Methods'] = ['GET, POST, OPTIONS, PUT, DELETE'];
+    responseHeaders['Access-Control-Expose-Headers'] = ['Content-Length, Content-Range, Accept-Ranges, *'];
     callback({ cancel: false, responseHeaders });
   });
 }
@@ -5888,10 +5889,12 @@ ipcMain.handle('ytmusic-request', async (_event, endpoint, body) => ytmusicAuth.
 ipcMain.handle('ytmusic-search', async (_event, query, limit, offset) => ytmusicAuth.searchSongs(query, limit, offset));
 ipcMain.handle('ytmusic-get-audio-url', async (_event, videoId) => ytmusicAuth.getAudioStreamUrl(videoId));
 ipcMain.handle('ytmusic-get-song-detail', async (_event, videoId) => ytmusicAuth.getSongDetail(videoId));
-ipcMain.handle('ytmusic-get-lyrics', async (_event, videoId) => ytmusicAuth.getLyrics(videoId));
+ipcMain.handle('ytmusic-get-lyrics', async (_event, videoId, title, artist, durationSec) => ytmusicAuth.getLyrics(videoId, title, artist, durationSec));
 ipcMain.handle('ytmusic-get-user-playlists', async (_event, limit, offset) => ytmusicAuth.getUserPlaylists(limit, offset));
 ipcMain.handle('ytmusic-get-playlist-tracks', async (_event, browseId, limit, offset) => ytmusicAuth.getPlaylistTracks(browseId, limit, offset));
 ipcMain.handle('ytmusic-get-artist-detail', async (_event, artistId) => ytmusicAuth.getArtistDetail(artistId));
+ipcMain.handle('ytmusic-get-collection-detail', async (_event, browseId, type) => ytmusicAuth.getCollectionDetail(browseId, type));
+ipcMain.handle('ytmusic-get-artist-albums', async (_event, artistId, limit, offset) => ytmusicAuth.getArtistAlbums(artistId, limit, offset));
 
 ipcMain.handle('window-is-maximized', () => {
   if (!mainWindow || mainWindow.isDestroyed()) {

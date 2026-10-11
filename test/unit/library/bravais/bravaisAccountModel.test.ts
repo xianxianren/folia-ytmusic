@@ -64,7 +64,7 @@ describe('projectBravaisLoginForm', () => {
             providerId: 'gamma',
             sessionId: 7,
             phase: 'waiting',
-            title: 'home.loginTitle',
+            title: 'home.loginTitleYtmusic',
             status: 'home.scanQr',
             tone: 'normal',
             qr: { kind: 'image', url: 'data:image/png;base64,key-1' },

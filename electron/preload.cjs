@@ -319,10 +319,12 @@ contextBridge.exposeInMainWorld('electron', {
     ytmusicSearch: (query, limit, offset) => ipcRenderer.invoke('ytmusic-search', query, limit, offset),
     getYtmusicAudioUrl: (videoId) => ipcRenderer.invoke('ytmusic-get-audio-url', videoId),
     getYtmusicSongDetail: (videoId) => ipcRenderer.invoke('ytmusic-get-song-detail', videoId),
-    getYtmusicLyrics: (videoId) => ipcRenderer.invoke('ytmusic-get-lyrics', videoId),
+    getYtmusicLyrics: (videoId, title, artist, durationSec) => ipcRenderer.invoke('ytmusic-get-lyrics', videoId, title, artist, durationSec),
     getYtmusicUserPlaylists: (limit, offset) => ipcRenderer.invoke('ytmusic-get-user-playlists', limit, offset),
     getYtmusicPlaylistTracks: (browseId, limit, offset) => ipcRenderer.invoke('ytmusic-get-playlist-tracks', browseId, limit, offset),
     getYtmusicArtistDetail: (artistId) => ipcRenderer.invoke('ytmusic-get-artist-detail', artistId),
+    getYtmusicCollectionDetail: (browseId, type) => ipcRenderer.invoke('ytmusic-get-collection-detail', browseId, type),
+    getYtmusicArtistAlbums: (artistId, limit, offset) => ipcRenderer.invoke('ytmusic-get-artist-albums', artistId, limit, offset),
     onYtmusicAuthChanged: (callback) => {
         const listener = (_event, user) => callback(user);
         ipcRenderer.on('ytmusic-auth-changed', listener);

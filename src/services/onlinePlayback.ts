@@ -40,11 +40,14 @@ export async function loadOnlineSongAudioSource(
     }
 
     if (prefetched?.audioUrl && prefetched.audioUrl !== 'CACHED_IN_DB' && isUrlValid(prefetched.audioUrlFetchedAt)) {
-        return {
-            kind: 'ok',
-            audioSrc: prefetched.audioUrl,
-            replayGain: song.replayGain ?? prefetched.replayGain,
-        };
+        const safeAudioSrc = toSafePlaybackUrl(prefetched.audioUrl);
+        if (safeAudioSrc) {
+            return {
+                kind: 'ok',
+                audioSrc: safeAudioSrc,
+                replayGain: song.replayGain ?? prefetched.replayGain,
+            };
+        }
     }
 
     let source = null;
@@ -71,6 +74,19 @@ export const applyOnlineAudioSourceMetadata = (
     ? { ...song, replayGain: { ...song.replayGain, ...replayGain } }
     : song;
 
+/**
+ * 检测歌词是否为按总时长机械均分生成的伪时序歌词，避免陈旧缓存阻止真实歌词加载。
+ */
+export const isSyntheticUniformLyrics = (lyrics: LyricData | null | undefined): boolean => {
+    if (!lyrics || !Array.isArray(lyrics.lines) || lyrics.lines.length < 3) return false;
+    const firstLine = lyrics.lines[0];
+    if (firstLine.startTime !== 0) return false;
+    const firstDuration = Number((firstLine.endTime - firstLine.startTime).toFixed(2));
+    if (firstDuration <= 0) return false;
+    const uniformCount = lyrics.lines.filter(l => Math.abs((l.endTime - l.startTime) - firstDuration) < 0.05).length;
+    return uniformCount / lyrics.lines.length > 0.85;
+};
+
 export async function loadOnlineSongLyrics(
     song: SongResult,
     prefetched: PrefetchedSongData | null,
@@ -92,8 +108,9 @@ export async function loadOnlineSongLyrics(
     if (!isCurrent()) return;
     onStateChange?.(onlineLyricsState);
 
-    const cachedLyrics = await getSongCacheWithLegacyMigration<LyricData>('lyric', song, migrateLyricDataRenderHints);
+    const rawCachedLyrics = await getSongCacheWithLegacyMigration<LyricData>('lyric', song, migrateLyricDataRenderHints);
     if (!isCurrent()) return;
+    const cachedLyrics = isSyntheticUniformLyrics(rawCachedLyrics) ? null : rawCachedLyrics;
     const preferredCachedLyrics = resolveOnlineLyrics(onlineLyricsState, cachedLyrics);
     const hasAuthoritativeLyricsSelection = onlineLyricsState?.lyricsSource === 'imported'
         || Boolean(onlineLyricsState?.hasOnlineOverride);

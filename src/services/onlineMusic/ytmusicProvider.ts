@@ -143,8 +143,20 @@ export const ytmusicProvider: OnlineMusicProvider = {
             if (!stream?.url) {
                 return null;
             }
+            let cleanUrl = stream.url;
+            try {
+                const u = new URL(cleanUrl);
+                u.searchParams.delete('range');
+                u.searchParams.delete('rn');
+                u.searchParams.delete('rbuf');
+                u.searchParams.delete('ump');
+                u.searchParams.delete('srfvp');
+                cleanUrl = u.toString();
+            } catch {
+                // Keep original if parsing fails
+            }
             return {
-                url: stream.url,
+                url: cleanUrl,
                 fetchedAt: Date.now(),
                 expiresAt: stream.expiresAt,
                 quality,
@@ -160,13 +172,23 @@ export const ytmusicProvider: OnlineMusicProvider = {
             if (!videoId || typeof window === 'undefined' || !window.electron?.getYtmusicLyrics) {
                 return { lyrics: null, isPureMusic: false };
             }
-            const text = await window.electron.getYtmusicLyrics(String(videoId));
+            const artistName = song.artists?.[0]?.name || (song as any).artist || '';
+            const durationSec = song.durationMs ? song.durationMs / 1000 : 0;
+            const text = await window.electron.getYtmusicLyrics(String(videoId), song.name, artistName, durationSec);
             if (!text) {
                 return { lyrics: null, isPureMusic: false };
             }
             const parsed = parseLyricsByFormat('lrc', text);
+            if (parsed.lines && parsed.lines.length > 0) {
+                return {
+                    lyrics: parsed,
+                    mainText: text,
+                    isPureMusic: false,
+                };
+            }
+
             return {
-                lyrics: parsed.lines.length ? parsed : null,
+                lyrics: null,
                 mainText: text,
                 isPureMusic: false,
             };
@@ -199,6 +221,17 @@ export const ytmusicProvider: OnlineMusicProvider = {
             return { items: [], hasMore: false, nextOffset: offset };
         },
         async getLikedSongIds(_userId: MediaId): Promise<MediaId[]> {
+            if (typeof window !== 'undefined' && window.electron?.getYtmusicPlaylistTracks) {
+                const res = await window.electron.getYtmusicPlaylistTracks('VLLM', 100, 0);
+                return (res?.items || []).map(item => String(item.id || item.videoId)).filter(Boolean);
+            }
+            return [];
+        },
+        async getLikedSongs(_userId: MediaId): Promise<UnifiedSong[]> {
+            if (typeof window !== 'undefined' && window.electron?.getYtmusicPlaylistTracks) {
+                const res = await window.electron.getYtmusicPlaylistTracks('VLLM', 100, 0);
+                return (res?.items || []).map(normalizeYtmusicSong);
+            }
             return [];
         },
     },
@@ -215,6 +248,10 @@ export const ytmusicProvider: OnlineMusicProvider = {
             return { items: [], hasMore: false, nextOffset: offset };
         },
         async getPlaylistDetail(id: MediaId): Promise<ProviderCollection | null> {
+            if (typeof window !== 'undefined' && window.electron?.getYtmusicCollectionDetail) {
+                const res = await window.electron.getYtmusicCollectionDetail(String(id), 'playlist');
+                return res ? normalizeCollection(res, 'playlist') : null;
+            }
             return {
                 providerId: 'ytmusic',
                 id: String(id),
@@ -234,6 +271,10 @@ export const ytmusicProvider: OnlineMusicProvider = {
             return { items: [], hasMore: false, nextOffset: offset || 0 };
         },
         async getAlbumDetail(id: MediaId): Promise<ProviderCollection | null> {
+            if (typeof window !== 'undefined' && window.electron?.getYtmusicCollectionDetail) {
+                const res = await window.electron.getYtmusicCollectionDetail(String(id), 'album');
+                return res ? normalizeCollection(res, 'album') : null;
+            }
             return {
                 providerId: 'ytmusic',
                 id: String(id),
@@ -252,7 +293,15 @@ export const ytmusicProvider: OnlineMusicProvider = {
             }
             return { items: [], hasMore: false, nextOffset: offset };
         },
-        async getArtistAlbums(_id: MediaId, _limit: number, offset: number): Promise<ProviderPage<ProviderCollection>> {
+        async getArtistAlbums(id: MediaId, limit: number, offset: number): Promise<ProviderPage<ProviderCollection>> {
+            if (typeof window !== 'undefined' && window.electron?.getYtmusicArtistAlbums) {
+                const res = await window.electron.getYtmusicArtistAlbums(String(id), limit, offset);
+                return {
+                    items: (res?.items || []).map(item => normalizeCollection(item, 'album')),
+                    hasMore: Boolean(res?.hasMore),
+                    nextOffset: res?.nextOffset ?? (offset + limit),
+                };
+            }
             return { items: [], hasMore: false, nextOffset: offset };
         },
         async getArtistDetail(id: MediaId): Promise<ProviderCollection | null> {

@@ -135,7 +135,7 @@ describe('application account controller with Folium mod sources', () => {
         expect(await switchAndConfirm(MOD_PROVIDER_ID)).toEqual({ status: 'switched', providerId: MOD_PROVIDER_ID, changed: true });
 
         expect(view!.activeProviderId).toBe(MOD_PROVIDER_ID);
-        expect(cleanup.resetForProviderSwitch).toHaveBeenCalledWith(MOD_PROVIDER_ID, 'netease');
+        expect(cleanup.resetForProviderSwitch).toHaveBeenCalledWith(MOD_PROVIDER_ID, 'ytmusic');
         expect(useSearchNavigationStore.getState().searchSourceTab).toBe(MOD_PROVIDER_ID);
     });
 
@@ -150,7 +150,7 @@ describe('application account controller with Folium mod sources', () => {
         expect(cleanup.resetForProviderSwitch).not.toHaveBeenCalled();
     });
 
-    it('falls back to NetEase and remembers it when the active mod source goes away', async () => {
+    it('falls back to ytmusic and remembers it when the active mod source goes away', async () => {
         registerOnlineMusicProvider(modProvider);
         useOnlineProviderAccountStore.getState().setActiveProviderId(MOD_PROVIDER_ID);
         mount();
@@ -161,10 +161,10 @@ describe('application account controller with Folium mod sources', () => {
             await Promise.resolve();
         });
 
-        expect(view!.activeProviderId).toBe('netease');
+        expect(view!.activeProviderId).toBe('ytmusic');
         expect(view!.providers.some(provider => provider.providerId === MOD_PROVIDER_ID)).toBe(false);
-        expect(storage.get('active_online_provider_id')).toBe('netease');
-        expect(useSearchNavigationStore.getState().searchSourceTab).toBe('netease');
+        expect(storage.get('active_online_provider_id')).toBe('ytmusic');
+        expect(useSearchNavigationStore.getState().searchSourceTab).toBe('ytmusic');
     });
 });
 
@@ -176,7 +176,7 @@ describe('application account controller host tables', () => {
 
         // 第一份表里没有 mod 源的刷新器：切过去不刷新。
         await switchAndConfirm(MOD_PROVIDER_ID);
-        await switchAndConfirm('netease');
+        await switchAndConfirm('ytmusic');
 
         const refreshMod = vi.fn().mockResolvedValue(true);
         rerender(tables({ refreshers: { [MOD_PROVIDER_ID]: refreshMod } }));
@@ -187,7 +187,7 @@ describe('application account controller host tables', () => {
     });
 
     it('logs out through the newest logout table', async () => {
-        useOnlineProviderAccountStore.getState().updateAccount('netease', {
+        useOnlineProviderAccountStore.getState().updateAccount('ytmusic', {
             status: 'authenticated',
             user: { id: 'u1', nickname: 'U1' },
             collections: [],
@@ -196,18 +196,18 @@ describe('application account controller host tables', () => {
         });
         const stale = vi.fn().mockResolvedValue(undefined);
         const fresh = vi.fn().mockResolvedValue(undefined);
-        mount(tables({ logouts: { netease: stale } }));
-        rerender(tables({ logouts: { netease: fresh } }));
+        mount(tables({ logouts: { ytmusic: stale } }));
+        rerender(tables({ logouts: { ytmusic: fresh } }));
 
         let result: unknown = null;
         await act(async () => {
-            result = await controller!.logout('netease');
+            result = await controller!.logout('ytmusic');
         });
 
-        expect(result).toEqual({ status: 'logged-out', providerId: 'netease' });
+        expect(result).toEqual({ status: 'logged-out', providerId: 'ytmusic' });
         expect(fresh).toHaveBeenCalledTimes(1);
         expect(stale).not.toHaveBeenCalled();
-        useOnlineProviderAccountStore.getState().clearAccount('netease');
+        useOnlineProviderAccountStore.getState().clearAccount('ytmusic');
     });
 
     it('disposes the controller on unmount: a pending switch is declined', async () => {

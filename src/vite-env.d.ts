@@ -993,10 +993,12 @@ declare global {
       ytmusicSearch?: (query: string, limit?: number, offset?: number) => Promise<{ items: any[]; hasMore: boolean; nextOffset: number }>;
       getYtmusicAudioUrl?: (videoId: string) => Promise<{ url: string; expiresAt: number } | null>;
       getYtmusicSongDetail?: (videoId: string) => Promise<any>;
-      getYtmusicLyrics?: (videoId: string) => Promise<string | null>;
+      getYtmusicLyrics?: (videoId: string, title?: string, artist?: string, durationSec?: number) => Promise<string | null>;
       getYtmusicUserPlaylists?: (limit?: number, offset?: number) => Promise<{ items: any[]; hasMore: boolean; nextOffset: number }>;
       getYtmusicPlaylistTracks?: (browseId: string, limit?: number, offset?: number) => Promise<{ items: any[]; hasMore: boolean; nextOffset: number }>;
       getYtmusicArtistDetail?: (artistId: string) => Promise<any>;
+      getYtmusicCollectionDetail?: (browseId: string, type?: 'playlist' | 'album') => Promise<any>;
+      getYtmusicArtistAlbums?: (artistId: string, limit?: number, offset?: number) => Promise<{ items: any[]; hasMore: boolean; nextOffset: number }>;
       onYtmusicAuthChanged?: (callback: (user: { id: string; nickname: string; avatarUrl?: string } | null) => void) => () => void;
     };
   }

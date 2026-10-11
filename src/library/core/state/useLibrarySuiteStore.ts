@@ -17,6 +17,10 @@ const readStoredSuite = (): LibrarySuiteId | null => {
     if (typeof window === 'undefined') return null;
     try {
         const stored = localStorage.getItem(LIBRARY_SUITE_STORAGE_KEY);
+        if (stored === 'bravais') {
+            try { localStorage.setItem(LIBRARY_SUITE_STORAGE_KEY, 'grid'); } catch (_) {}
+            return 'grid';
+        }
         return stored ? stored : null;
     } catch {
         return null;

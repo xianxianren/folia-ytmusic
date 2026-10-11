@@ -76,6 +76,15 @@ export const toSafeRemoteUrl = (url: string | null | undefined): string | null |
         ) {
             return normalizedUrl.replace(/^http:/, 'https:');
         }
+
+        if (parsedUrl.hostname.includes('googlevideo.com') && parsedUrl.pathname.includes('videoplayback')) {
+            parsedUrl.searchParams.delete('range');
+            parsedUrl.searchParams.delete('rn');
+            parsedUrl.searchParams.delete('rbuf');
+            parsedUrl.searchParams.delete('ump');
+            parsedUrl.searchParams.delete('srfvp');
+            return parsedUrl.toString();
+        }
     } catch {
         return normalizedUrl;
     }

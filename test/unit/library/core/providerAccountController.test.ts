@@ -487,8 +487,8 @@ describe('providerAccountController · login flow', () => {
             backend: { failed: false, detail: null, restarting: false, canRestart: false },
         });
         expect(login.copy).toEqual({
-            title: { key: 'home.loginTitle' },
-            note: { key: 'home.loginNote' },
+            title: { key: 'home.loginTitleYtmusic' },
+            note: { key: 'home.loginNoteYtmusic' },
             status: { key: 'home.scanQr' },
         });
     });
@@ -743,15 +743,15 @@ describe('providerAccountController · logout', () => {
 // ─── 当前平台与快照 ─────────────────────────────────────────────────────
 
 describe('providerAccountController · active provider and snapshot', () => {
-    it('falls back to NetEase when the stored provider is unavailable and writes it back without confirmation', async () => {
+    it('falls back to ytmusic when the stored provider is unavailable and writes it back without confirmation', async () => {
         accounts = createAccounts('folium.gone');
         const controller = createController();
 
-        expect(controller.getSnapshot().activeProviderId).toBe('netease');
+        expect(controller.getSnapshot().activeProviderId).toBe('ytmusic');
         await manual.flush();
 
-        expect(accounts.stored()).toBe('netease');
-        expect(opsOf('set-active', 'cleanup', 'invalidate')).toEqual([['set-active', 'netease']]);
+        expect(accounts.stored()).toBe('ytmusic');
+        expect(opsOf('set-active', 'cleanup', 'invalidate')).toEqual([['set-active', 'ytmusic']]);
         expect(controller.getSnapshot().pendingSwitch).toBeNull();
     });
 
@@ -763,8 +763,8 @@ describe('providerAccountController · active provider and snapshot', () => {
 
         accounts.remove('modo');
 
-        expect(controller.getSnapshot().activeProviderId).toBe('netease');
-        expect(accounts.stored()).toBe('netease');
+        expect(controller.getSnapshot().activeProviderId).toBe('ytmusic');
+        expect(accounts.stored()).toBe('ytmusic');
         expect(controller.getSnapshot().providers.map(p => p.providerId)).not.toContain('modo');
         expect(controller.getSnapshot().providers.find(p => p.providerId === 'alpha')?.status).toBe('authenticated');
         expect(opsOf('cleanup', 'invalidate')).toEqual([]);
